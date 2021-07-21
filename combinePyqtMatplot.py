@@ -64,7 +64,7 @@ class PlotWindow(widgetForm, baseClass):
         self.plotFuncDict = {}
         self.funcList = []
         self.currentColor = list(np.random.choice(range(256), size=3))
-
+        self.currentSetItem=[]
 
     def runPlotFunction(self,func, *args, setYourLabel=None, **kwargs):
         if not setYourLabel == None:
@@ -129,7 +129,8 @@ class PlotWindow(widgetForm, baseClass):
                             str(self.currentColor[1])+","+
                             str(self.currentColor[2])+")")
             b.clicked.connect(partial(self.onButtonClicked, item))
-            self.fstAxisLayout.addWidget(b)
+            self.currentSetItem.append(b)
+            #self.fstAxisLayout.addWidget(b)
 
     def onButtonClicked(self,key):
 
@@ -218,19 +219,34 @@ class PlotWindow(widgetForm, baseClass):
         self.plotFuncDict = {}
         self.funcList = []
         self.tableWidget.clear()
-        for i in reversed(range(self.fstAxisLayout.count())):
+        for i in range(self.fstAxisLayout.count()):
             self.fstAxisLayout.itemAt(i).widget().setParent(None)
-        for i in reversed(range(self.itemLayout.count())):
+        for i in range(self.itemLayout.count()):
             self.itemLayout.itemAt(i).widget().setParent(None)
-        for i in reversed(range(self.secAxisLayout.count())):
+        for i in range(self.secAxisLayout.count()):
             self.secAxisLayout.itemAt(i).widget().setParent(None)
 
 
     def show(self):
         super().show()
         self.currentPlotFuncDict = copy.deepcopy(self.plotFuncDict)
-        self.onLayoutChange()
 
+
+
+
+        for i in range(self.secAxisLayout.count()-1,-1,-1):
+            print(i)
+            self.itemLayout.addWidget(self.secAxisLayout.itemAt(i).widget())
+            #self.secAxisLayout.itemAt(i).widget().setParent(None)
+
+        for i in range(self.fstAxisLayout.count()-1,-1,-1):
+            print(i)
+            self.itemLayout.addWidget(self.fstAxisLayout.itemAt(i).widget())
+            #self.fstAxisLayout.itemAt(i).widget().setParent(None)
+        for b in self.currentSetItem:
+            self.fstAxisLayout.addWidget(b)
+        self.onLayoutChange()
+        self.currentSetItem = []
         self.currentColor = list(np.random.choice(range(125,256), size=3))
     def closeEvent(self, event):
         # do stuff
