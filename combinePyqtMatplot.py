@@ -6,9 +6,9 @@ import time
 import numpy as np
 from PyQt5 import uic, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMenu, QVBoxLayout, QSizePolicy, QMessageBox, QWidget, \
-    QPushButton, QSizeGrip, QHBoxLayout, QListWidget, QCheckBox, QListWidgetItem
-from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtCore import Qt
+    QPushButton, QSizeGrip, QHBoxLayout, QListWidget, QCheckBox, QListWidgetItem, QStyleOption, QStyle, QLabel
+from PyQt5.QtGui import QIcon, QColor, QPainter, QFont, QPen
+from PyQt5.QtCore import Qt, QPoint
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -33,6 +33,11 @@ class PlotWindow(widgetForm, baseClass):
         navi_toolbar = NavigationToolbar(self.plotCanvas, self)
 
         self.pltLayout.addWidget(navi_toolbar)
+
+        penPB = Button("pen")
+        self.pltLayout.addWidget(penPB)
+        penPB.clicked.connect(self.plotCanvas.on_penPB_clicked)
+
         self.pltLayout.addWidget(self.plotCanvas)
 
         self.fstAxisLayout = QHBoxLayout()
@@ -62,7 +67,6 @@ class PlotWindow(widgetForm, baseClass):
 
 
     def runPlotFunction(self,func, *args, setYourLabel=None, **kwargs):
-
         if not setYourLabel == None:
             if not str(setYourLabel) in self.plotFuncDict:
                 self.setItem([str(setYourLabel)])
@@ -86,7 +90,8 @@ class PlotWindow(widgetForm, baseClass):
 
 
         if self.secAxisLayout.count() > 0:
-            plt.subplot(1, 2, 1)
+            self.plotCanvas.isOnlyOneAxes = False
+            plt.axes(self.plotCanvas.axes121)
             for i in range(self.fstAxisLayout.count()):
                 key = self.fstAxisLayout.itemAt(i).widget().text()
                 # print("key",key)
@@ -94,7 +99,7 @@ class PlotWindow(widgetForm, baseClass):
                 item['func'](*item['args'], **item['kwargs'])
             for f in self.funcList:
                 f['func'](*f['args'], **f['kwargs'])
-            plt.subplot(1, 2, 2)
+            plt.axes(self.plotCanvas.axes122)
             for i in range(self.secAxisLayout.count()):
                 key = self.secAxisLayout.itemAt(i).widget().text()
                 #print("key",key)
@@ -103,7 +108,8 @@ class PlotWindow(widgetForm, baseClass):
             for f in self.funcList:
                 f['func'](*f['args'], **f['kwargs'])
         else:
-            plt.subplot(1, 1, 1)
+            self.plotCanvas.isOnlyOneAxes = True
+            plt.axes(self.plotCanvas.axes111)
             for i in range(self.fstAxisLayout.count()):
                 key = self.fstAxisLayout.itemAt(i).widget().text()
                 # print("key",key)
@@ -129,7 +135,6 @@ class PlotWindow(widgetForm, baseClass):
 
 
         self.plotCanvas.fig.clf()
-
         selects = self.tableWidget.selectedItems()
         if selects:
             self.currentPlotFuncDict[str(key)]['kwargs']['x'] = np.zeros(int(len(selects)/2))
@@ -152,7 +157,7 @@ class PlotWindow(widgetForm, baseClass):
                 msg.exec_()
                 return
 
-            plt.subplot(1, 2, 1)
+            plt.axes(self.plotCanvas.axes121)
             for i in range(self.fstAxisLayout.count()):
                 key = self.fstAxisLayout.itemAt(i).widget().text()
                 # print("key",key)
@@ -161,7 +166,7 @@ class PlotWindow(widgetForm, baseClass):
             for f in self.funcList:
                 f['func'](*f['args'], **f['kwargs'])
 
-            plt.subplot(1, 2, 2)
+            plt.axes(self.plotCanvas.axes122)
             for i in range(self.secAxisLayout.count()):
                 key = self.secAxisLayout.itemAt(i).widget().text()
                 # print("key",key)
@@ -223,12 +228,10 @@ class PlotWindow(widgetForm, baseClass):
 
     def show(self):
         super().show()
-
         self.currentPlotFuncDict = copy.deepcopy(self.plotFuncDict)
         self.onLayoutChange()
-        self.plotCanvas.draw()
-        self.currentColor = list(np.random.choice(range(256), size=3))
 
+        self.currentColor = list(np.random.choice(range(256), size=3))
     def closeEvent(self, event):
         # do stuff
         self.clearPlot()
@@ -238,22 +241,68 @@ class PlotWindow(widgetForm, baseClass):
 
 
 
+
+
 class PlotCanvas(FigureCanvas):
 
     def __init__(self, width=8, height=6, dpi=100):
         self.fig = plt.figure(figsize=(width, height), dpi=dpi)
-        self.axes2 = self.fig.add_subplot(1, 2, 2)
-        self.axes1 = self.fig.add_subplot(1, 2, 1)
-
-        FigureCanvas.__init__(self, self.fig)
-
-
+        self.axes111 = self.fig.add_subplot(111)
+        self.axes121 = self.fig.add_subplot(121)
+        self.axes122 = self.fig.add_subplot(122)
+        super(FigureCanvas, self).__init__(self.fig)
+        self.fig.canvas.mpl_connect('button_press_event', self.button_press_event)
+        self.fig.canvas.mpl_connect('motion_notify_event', self.motion_notify_event)
+        self.fig.canvas.mpl_connect('button_release_event', self.button_release_event)
+        self.isOnlyOneAxes = True
+        self.drawList = []
+        self.xx, self.yy=0,0
         FigureCanvas.setSizePolicy(self,
                                    QSizePolicy.Expanding,
                                    QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
+        self.drawing = False
+        self.lastPoint = QPoint()
+        self.isButtonPress = False
+        self.havePen = False
+    def draw(self):
+
+        for d in self.drawList:
+            plt.axes(self.axes121)
+            d['func'](*d['args'], **d['kwargs'])
+            plt.axes(self.axes122)
+            d['func'](*d['args'], **d['kwargs'])
+        super(FigureCanvas, self).draw()
+
+    def on_penPB_clicked(self):
+        self.havePen = not self.havePen
+
+    def button_press_event(self, event):
+        if self.havePen:
+            self.isButtonPress = True
+            self.currentPos = [event.xdata, event.ydata]
+    def motion_notify_event(self,event):
+
+        if self.isButtonPress and self.currentPos:
+            if self.isOnlyOneAxes:
+                plt.axes(self.axes111)
+                plt.plot([self.currentPos[0], event.xdata], [self.currentPos[1], event.ydata], 'g--')
+            else:
+                plt.axes(self.axes121)
+                plt.plot([self.currentPos[0], event.xdata], [self.currentPos[1], event.ydata], 'g--')
+                plt.axes(self.axes122)
+                plt.plot([self.currentPos[0], event.xdata], [self.currentPos[1], event.ydata], 'g--')
+            #self.appendDrawList(plt.plot, [self.currentPos[0],event.xdata], [self.currentPos[1],event.ydata],'g--')
+            self.currentPos = [event.xdata, event.ydata]
+            self.fig.canvas.draw()
+            self.fig.canvas.flush_events()
 
 
+    def button_release_event(self, event):
+        self.isButtonPress = False
+
+    def appendDrawList(self,func,*args,**kwargs):
+        self.drawList.append({'func': func, 'args':args,'kwargs':kwargs})
 
 if __name__ == '__main__':
 
