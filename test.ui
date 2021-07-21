@@ -47,7 +47,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page_3">
        <property name="geometry">
@@ -55,13 +55,16 @@
          <x>0</x>
          <y>0</y>
          <width>182</width>
-         <height>377</height>
+         <height>381</height>
         </rect>
        </property>
        <attribute name="label">
         <string>File Manipulation</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_5">
+        <item row="1" column="0">
+         <widget class="QListWidget" name="filterListWidget"/>
+        </item>
         <item row="0" column="0">
          <widget class="QPushButton" name="filterPB">
           <property name="text">
@@ -69,7 +72,7 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
+        <item row="5" column="0">
          <spacer name="verticalSpacer_3">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
@@ -82,8 +85,12 @@
           </property>
          </spacer>
         </item>
-        <item row="1" column="0">
-         <widget class="QListWidget" name="filterListWidget"/>
+        <item row="4" column="0">
+         <widget class="QPushButton" name="groupAndUngroupPB">
+          <property name="text">
+           <string>group</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -93,7 +100,7 @@
          <x>0</x>
          <y>0</y>
          <width>182</width>
-         <height>377</height>
+         <height>381</height>
         </rect>
        </property>
        <attribute name="label">
@@ -135,7 +142,7 @@
          <x>0</x>
          <y>0</y>
          <width>182</width>
-         <height>377</height>
+         <height>381</height>
         </rect>
        </property>
        <attribute name="label">
@@ -170,7 +177,7 @@
          <x>0</x>
          <y>0</y>
          <width>182</width>
-         <height>377</height>
+         <height>381</height>
         </rect>
        </property>
        <attribute name="label">
@@ -240,7 +247,7 @@
          <x>0</x>
          <y>0</y>
          <width>182</width>
-         <height>377</height>
+         <height>381</height>
         </rect>
        </property>
        <attribute name="label">
@@ -258,7 +265,7 @@
              <x>0</x>
              <y>0</y>
              <width>164</width>
-             <height>305</height>
+             <height>311</height>
             </rect>
            </property>
            <attribute name="label">
@@ -312,8 +319,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>98</width>
-             <height>28</height>
+             <width>100</width>
+             <height>30</height>
             </rect>
            </property>
            <attribute name="label">
@@ -352,7 +359,7 @@
      <x>0</x>
      <y>0</y>
      <width>827</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
