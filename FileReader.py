@@ -594,6 +594,129 @@ class MainWindow(widgetForm,baseClass):
         msg.exec_()
 
     @QtCore.pyqtSlot()
+    def on_ungroupPB_clicked(self):
+        df = pd.read_csv(self.filename)
+        newData=[]
+        selected = self.table.selectedItems()
+        self.ungroupTable = QtWidgets.QTableWidget()
+
+        if selected:
+            for selitem in selected:
+                try:
+                    col = df.columns[selitem.column()]
+                    row = df[col][selitem.row()]
+
+                    newData.append([col,row])
+                    self.ungroupTable.insertRow(self.ungroupTable.rowCount())
+                    self.ungroupTable.setColumnCount(2)
+                    self.ungroupTable.setItem(self.ungroupTable.rowCount() - 1, 0, QtWidgets.QTableWidgetItem(str(col)))
+                    self.ungroupTable.setItem(self.ungroupTable.rowCount() - 1, 1, QtWidgets.QTableWidgetItem(str(row)))
+                except:
+                    print("I can't find the bug")
+
+            self.ungroupTableDF = pd.DataFrame(newData)
+
+            self.ungroupTableWidget = QWidget()
+            vLayout = QVBoxLayout()
+            self.ungroupTableTextInput = QLineEdit()
+            hLayout = QHBoxLayout()
+            confirmPB = QPushButton("confirm")
+            confirmPB.clicked.connect(self.ungroupConfirmPBClicked)
+            cancelPB = QPushButton("cancel")
+            cancelPB.clicked.connect(self.ungroupCancelPBClicked)
+            hLayout.addWidget(confirmPB)
+            hLayout.addWidget((cancelPB))
+            vLayout.addWidget(self.ungroupTableTextInput)
+            vLayout.addWidget(self.ungroupTable)
+            vLayout.addLayout(hLayout)
+            self.ungroupTableWidget.setLayout(vLayout)
+            self.ungroupTableWidget.show()
+            #print(newData)
+
+
+    def ungroupConfirmPBClicked(self):
+        self.ungroupTableDF.to_csv(self.ungroupTableTextInput.text())
+        self.ungroupTable.insertRow(0)
+        self.ungroupTable.setItem(0, 0, QtWidgets.QTableWidgetItem(self.ungroupTableTextInput.text()))
+        self.ungroupTable.setItem(0, 1, QtWidgets.QTableWidgetItem("values"))
+
+        self.tabIndexFileNameList.append(self.ungroupTableTextInput.text())
+        self.openFilesTabWidget.setCurrentIndex(self.openFilesTabWidget.count() - 1)
+        self.openFilesTabWidget.addTab(self.ungroupTable, self.ungroupTableTextInput.text())
+
+        #self.addTableOnTab(self.openFilesTabWidget.widget(self.openFilesTabWidget.currentIndex()), self.ungroupTableTextInput.text())
+        self.ungroupTableWidget.close()
+    def ungroupCancelPBClicked(self):
+        self.ungroupTableWidget.close()
+
+    @QtCore.pyqtSlot()
+    def on_groupAndUngroupPB_clicked(self):
+        self.groupTableWidget = QWidget()
+        vLayout = QVBoxLayout()
+        self.groupPB = QPushButton("group")
+        self.groupPB.clicked.connect(self.on_groupPB_clicked)
+        self.ungroupPB = QPushButton("ungroup")
+        self.ungroupPB.clicked.connect(self.on_ungroupPB_clicked)
+        vLayout.addWidget(self.groupPB)
+        vLayout.addWidget(self.ungroupPB)
+        self.groupTableWidget.setLayout(vLayout)
+        self.groupTableWidget.show()
+
+    @QtCore.pyqtSlot()
+    def on_groupPB_clicked(self):
+        selected = self.table.selectedItems()
+        select_list = []
+        for sel in selected:
+            if not (sel.column() in select_list):
+                select_list.append(sel.column())
+        if len(select_list) == 2:
+            df,dfgb = self.groupBy(select_list)
+            dfgb_dict = dfgb.indices
+            self.groupTableDF = pd.DataFrame(dfgb)
+            self.groupTable = QtWidgets.QTableWidget()
+            table = QtWidgets.QTableWidget()
+            keys = list(dfgb_dict.keys())
+
+            l=0
+            for key,group in dfgb_dict.items():
+                X=df[df.columns[select_list[1]]][group].values
+                if l < len(X):
+                    l=len(X)
+                for i in range(len(X)):
+                    if self.groupTable.rowCount() < l:
+                        self.groupTable.insertRow(self.groupTable.rowCount())
+                    self.groupTable.setColumnCount(len(dfgb_dict))
+                    self.groupTable.setItem(i, keys.index(key), QtWidgets.QTableWidgetItem(str(X[i])))
+            self.groupTable.insertRow(0)
+            for key in keys:
+                self.groupTable.setItem(0, keys.index(key), QtWidgets.QTableWidgetItem(str(key)))
+            self.groupTableWidget = QWidget()
+            vLayout = QVBoxLayout()
+            self.groupTableTextInput = QLineEdit()
+            hLayout = QHBoxLayout()
+            confirmPB = QPushButton("confirm")
+            confirmPB.clicked.connect(self.groupConfirmPBClicked)
+            cancelPB = QPushButton("cancel")
+            cancelPB.clicked.connect(self.groupCancelPBClicked)
+            hLayout.addWidget(confirmPB)
+            hLayout.addWidget((cancelPB))
+            vLayout.addWidget(self.groupTableTextInput)
+            vLayout.addWidget(self.groupTable)
+            vLayout.addLayout(hLayout)
+            self.groupTableWidget.setLayout(vLayout)
+            self.groupTableWidget.show()
+
+    def groupConfirmPBClicked(self):
+        self.groupTableDF.to_csv(self.groupTableTextInput.text())
+        self.tabIndexFileNameList.append(self.groupTableTextInput.text())
+        self.openFilesTabWidget.setCurrentIndex(self.openFilesTabWidget.count() - 1)
+        self.openFilesTabWidget.addTab(self.groupTable, self.groupTableTextInput.text())
+
+        #self.addTableOnTab(self.openFilesTabWidget.widget(self.openFilesTabWidget.currentIndex()), self.groupTableTextInput.text())
+        self.groupTableWidget.close()
+    def groupCancelPBClicked(self):
+        self.groupTableWidget.close()
+    @QtCore.pyqtSlot()
     def on_runPB_clicked(self):
         print("Test and Train data")
         df = pd.read_csv(self.filename)
@@ -836,7 +959,7 @@ class MainWindow(widgetForm,baseClass):
         if len(selectedCols) >= 2:
             for i in range(1, len(selectedCols)):
                 #plt.scatter(df[selectedCols[0]], df[selectedCols[i]], c=colors[i], marker=mStyles[i], label=selectedCols[i])
-                self.plotWindow.runPlotFunction(plt.scatter,df[selectedCols[0]], df[selectedCols[i]], c=colors[i], marker=mStyles[i], label=selectedCols[i])
+                self.plotWindow.runPlotFunction(plt.scatter,x=df[selectedCols[0]], y=df[selectedCols[i]], c=colors[i], marker=mStyles[i], label=str(selectedCols[i]))
         plt.legend(loc='upper left')
 
         #plt.show()
@@ -868,8 +991,9 @@ class MainWindow(widgetForm,baseClass):
                     selectedCols.append(col)
             df = df[selectedCols]
 
-        df.boxplot(column=selectedCols)
-        plt.show()
+        #df.boxplot(column=selectedCols)
+        self.plotWindow.runPlotFunction(df.boxplot,column=selectedCols,setYourLabel=df.columns[0])
+        self.plotWindow.show()
         self.table.clearSelection()
 
     @QtCore.pyqtSlot()
@@ -901,11 +1025,18 @@ class MainWindow(widgetForm,baseClass):
 
         print(df)
         #df[selectedCols[0]].plot(kind='hist',bins=100,rwidth=.9)
-        sns.distplot(df[selectedCols[0]], hist=True, kde=True, rug=False, bins=int(180/5),
+        self.plotWindow.runPlotFunction(sns.distplot,df[selectedCols[0]], hist=True, kde=True, rug=False, bins=int(180/5),
                      color='darkblue',hist_kws={'edgecolor':'black'},
                      kde_kws={'linewidth': 3},
-                     rug_kws={'color': 'black'})
-        plt.show()
+                     rug_kws={'color': 'black'},setYourLabel=df.columns[0])
+        '''
+        sns.distplot(df[selectedCols[0]], hist=True, kde=True, rug=False, bins=int(180/5),
+             color='darkblue',hist_kws={'edgecolor':'black'},
+             kde_kws={'linewidth': 3},
+             rug_kws={'color': 'black'})
+        '''
+
+        self.plotWindow.show()
         self.table.clearSelection()
 
     @QtCore.pyqtSlot()
@@ -934,7 +1065,7 @@ class MainWindow(widgetForm,baseClass):
         selectedRows = []
         if selected:
             for item in selected:
-                print(item.column(),"X",item.row())
+                #print(item.column(),"X",item.row())
                 if df.columns[item.column()] not in selectedCols:
                     selectedCols.append(df.columns[item.column()])
                 if item.row() not in selectedRows:
@@ -948,16 +1079,19 @@ class MainWindow(widgetForm,baseClass):
             df = df[selectedCols]
         # df.plot(y='PRX1')
 
-        print(df)
-        df[selectedCols].plot()
+        #print(df)
+        #df[selectedCols].plot()
+        self.plotWindow.runPlotFunction(plt.plot,df[selectedCols],setYourLabel=df.columns[0])
 
+        '''
         name, ext = os.path.splitext(self.filename)
         if not os.path.isdir(name):
             os.mkdir(name)
         plt.savefig(name + "\\fig1.png")
         self.addPicture(name + "\\fig1.png")
         self.table.clearSelection()
-        plt.show()
+        '''
+        self.plotWindow.show()
 
 
     def findMaxColumns(self):
