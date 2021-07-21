@@ -231,7 +231,7 @@ class PlotWindow(widgetForm, baseClass):
         self.currentPlotFuncDict = copy.deepcopy(self.plotFuncDict)
         self.onLayoutChange()
 
-        self.currentColor = list(np.random.choice(range(256), size=3))
+        self.currentColor = list(np.random.choice(range(125,256), size=3))
     def closeEvent(self, event):
         # do stuff
         self.clearPlot()
