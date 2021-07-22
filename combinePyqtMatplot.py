@@ -13,10 +13,10 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-
+from PyQt5 import QtWidgets
 import random
 from numpy.random import randn
-from pyqt5_plugins.examplebutton import QtWidgets
+#from pyqt5_plugins.examplebutton import QtWidgets
 from DragAndDrop import DropWidget,Button
 widgetForm, baseClass = uic.loadUiType("plot.ui")
 from functools import partial
@@ -282,12 +282,16 @@ class PlotCanvas(FigureCanvas):
         self.isButtonPress = False
         self.havePen = False
     def draw(self):
-
-        for d in self.drawList:
-            plt.axes(self.axes121)
-            d['func'](*d['args'], **d['kwargs'])
-            plt.axes(self.axes122)
-            d['func'](*d['args'], **d['kwargs'])
+        if self.isOnlyOneAxes:
+            for d in self.drawList:
+                plt.axes(self.axes111)
+                d['func'](*d['args'], **d['kwargs'])
+        else:
+            for d in self.drawList:
+                plt.axes(self.axes121)
+                d['func'](*d['args'], **d['kwargs'])
+                plt.axes(self.axes122)
+                d['func'](*d['args'], **d['kwargs'])
         super(FigureCanvas, self).draw()
 
     def on_penPB_clicked(self):
@@ -296,27 +300,29 @@ class PlotCanvas(FigureCanvas):
     def button_press_event(self, event):
         if self.havePen:
             self.isButtonPress = True
-            self.currentPos = [event.xdata, event.ydata]
+            self.currentPos = np.array([[event.xdata, event.ydata]])
+            print(self.currentPos)
     def motion_notify_event(self,event):
 
-        if self.isButtonPress and self.currentPos:
+        if self.isButtonPress:
             if self.isOnlyOneAxes:
                 plt.axes(self.axes111)
-                plt.plot([self.currentPos[0], event.xdata], [self.currentPos[1], event.ydata], 'g--')
+                plt.plot([self.currentPos[-1,0], event.xdata], [self.currentPos[-1,1], event.ydata], 'g--')
             else:
                 plt.axes(self.axes121)
-                plt.plot([self.currentPos[0], event.xdata], [self.currentPos[1], event.ydata], 'g--')
+                plt.plot([self.currentPos[-1,0], event.xdata], [self.currentPos[-1,1], event.ydata], 'g--')
                 plt.axes(self.axes122)
-                plt.plot([self.currentPos[0], event.xdata], [self.currentPos[1], event.ydata], 'g--')
-            #self.appendDrawList(plt.plot, [self.currentPos[0],event.xdata], [self.currentPos[1],event.ydata],'g--')
-            self.currentPos = [event.xdata, event.ydata]
+                plt.plot([self.currentPos[-1,0], event.xdata], [self.currentPos[-1,1], event.ydata], 'g--')
+
+            self.currentPos = np.concatenate([self.currentPos,np.array([[event.xdata, event.ydata]])])
+            print(self.currentPos)
             self.fig.canvas.draw()
             self.fig.canvas.flush_events()
 
 
     def button_release_event(self, event):
         self.isButtonPress = False
-
+        self.appendDrawList(plt.plot, self.currentPos[:,0], self.currentPos[:,1],'g--')
     def appendDrawList(self,func,*args,**kwargs):
         self.drawList.append({'func': func, 'args':args,'kwargs':kwargs})
 
