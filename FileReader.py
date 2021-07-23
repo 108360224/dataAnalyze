@@ -858,7 +858,30 @@ class MainWindow(widgetForm,baseClass):
             else:
                 index = -1
         return index
+    def creatDfFromTable(self):
+        df = pd.read_csv(self.filename)
+        df = df.dropna()
 
+        # print(df.head())
+        # fig, ax = plt.subplots(nrows=1, ncols=1, sharex=False, sharey=False)
+        # print(df.index)
+        selected = self.table.selectedItems()
+        selectedCols = []
+        selectedRows = []
+        if selected:
+            for item in selected:
+                if df.columns[item.column()] not in selectedCols:
+                    selectedCols.append(df.columns[item.column()])
+                if item.row() not in selectedRows:
+                    selectedRows.append(item.row())
+            df = df[selectedCols]
+            df = pd.DataFrame(df, index=selectedRows)
+        else:
+            for col in df.columns:
+                if utils_recognize_type(df, col) != 'cat':
+                    selectedCols.append(col)
+            df = df[selectedCols]
+        return df,selectedCols,selectedRows
     def groupBy(self,select_list,sortby=0):
         df = pd.read_csv(self.filename)
         df = df.sort_values(by=df.columns[select_list[sortby]])
@@ -869,228 +892,59 @@ class MainWindow(widgetForm,baseClass):
     @QtCore.pyqtSlot()
     def on_boxGroupbyPlotPB_clicked(self):
         print("on_pppb_clicked")
-        selected = self.table.selectedItems()
-        select_list = []
-        for sel in selected:
-            if not (sel.column() in select_list):
-                select_list.append(sel.column())
-        print(select_list)
-        if len(select_list) >= 2:
-            df = pd.read_csv(self.filename)
+        df, selectedCols, selsctedRows = self.creatDfFromTable()
+        self.plotWindow.clearPlot()
+        self.plotWindow.runPlotFunction(PlotWindow.BOX_GROUP_PLOT, df)
 
-            df, dfgb = self.groupBy(select_list,sortby=1)
-            dfgb_dict=dfgb.indices
-
-            print(df.columns[select_list[1]])
-
-            # dfgb.boxplot(subplots=False,column=df.columns[select_list[1]])
-            self.plotWindow.runPlotFunction(dfgb.boxplot, subplots=False,column=df.columns[select_list[1]],setYourLabel=df.columns[select_list[1]])
-
-
-            self.plotWindow.show()
-
-        else:
-            print("no selected")
+        # plt.show()
+        self.plotWindow.show()
 
     @QtCore.pyqtSlot()
     def on_groupbyPB_clicked(self):
         print("groupByPB clicked")
-        #df = pd.DataFrame(self.viewlist[self.openFilesTabWidget.currentIndex()])
+        df, selectedCols, selsctedRows = self.creatDfFromTable()
+        self.plotWindow.clearPlot()
+        self.plotWindow.runPlotFunction(PlotWindow.GROUP_PLOT, df)
 
-        selected = self.table.selectedItems()
-        select_list = []
-        for sel in selected:
-            if not(sel.column() in select_list):
-                select_list.append(sel.column())
-        print(select_list)
-        if len(select_list) >= 3:
-            df=pd.read_csv(self.filename)
-            self.pg = pg.PlotWidget()
-            self.pg.setWindowTitle("group by "+df.columns[select_list[0]])
-            self.pg.setLabel(axis='bottom', text=df.columns[select_list[1]])
-            self.pg.setLabel(axis='left', text=df.columns[select_list[2]])
-            self.pg.addLegend()
-            df, dfgb = self.groupBy(select_list)
-            dfgb_dict=dfgb.indices
-            for key,group in dfgb_dict.items():
-                print(key)
-                X=df[df.columns[select_list[1]]][group].values
-                Y=df[df.columns[select_list[2]]][group].values
-                idx = list(dfgb_dict.keys()).index(key)
-                #plt.scatter(X,Y,label=str(key))
-                self.plotWindow.runPlotFunction(plt.scatter,x=X,y=Y,label=str(key))
-
-            #plt.legend()
-            self.plotWindow.runPlotFunction(plt.legend)
-
-            self.plotWindow.show()
-
-        else:
-            print("no selected")
+        # plt.show()
+        self.plotWindow.show()
     @QtCore.pyqtSlot()
     def on_xyPlotPB_clicked(self):
         print("xyPlotPB clicked")
-        df = pd.read_csv(self.filename)
-        df = df.dropna()
-        #df.plot('PS', 'PRX1', kind='scatter')
-        #df.plot('PS1', 'PRX1', kind='scatter')
-        selected = self.table.selectedItems()
-        selectedCols = []
-        selectedRows = []
-        if selected:
-            for item in selected:
-                #print(item.column(),"X",item.row())
-                if df.columns[item.column()] not in selectedCols:
-                    selectedCols.append(df.columns[item.column()])
-                if item.row() not in selectedRows:
-                    selectedRows.append(item.row())
-            df = df[selectedCols]
-            df = pd.DataFrame(df, index=selectedRows)
-        else:
-            for col in df.columns:
-                if utils_recognize_type(df, col) != 'cat':
-                    selectedCols.append(col)
-            df = df[selectedCols]
+        df,selectedCols,selsctedRows=self.creatDfFromTable()
+        self.plotWindow.clearPlot()
+        self.plotWindow.runPlotFunction(PlotWindow.SCATTER,df)
 
-        colors = ['#FF0000','#00FF00','#0000FF','#F00000','#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-        mStyles = ["*", "+", "x", ".", ",", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p", "P", "h", "H",
-                   "X", "D", "d", "|", "_", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
-                   ]
-        if len(selectedCols) >= 2:
-            for i in range(1, len(selectedCols)):
-                #plt.scatter(df[selectedCols[0]], df[selectedCols[i]], c=colors[i], marker=mStyles[i], label=selectedCols[i])
-                self.plotWindow.runPlotFunction(plt.scatter,x=df[selectedCols[0]], y=df[selectedCols[i]], c=colors[i], marker=mStyles[i], label=str(selectedCols[i]))
-        plt.legend(loc='upper left')
 
         #plt.show()
         self.plotWindow.show()
     @QtCore.pyqtSlot()
     def on_boxPlotPB_clicked(self):
         print("boxPlotPB clicked")
-        df = pd.read_csv(self.filename)
-        df = df.dropna()
-
-        #print(df.head())
-        # fig, ax = plt.subplots(nrows=1, ncols=1, sharex=False, sharey=False)
-        #print(df.index)
-        selected = self.table.selectedItems()
-        selectedCols = []
-        selectedRows = []
-        if selected:
-            for item in selected:
-                print(item.column(),"X",item.row())
-                if df.columns[item.column()] not in selectedCols:
-                    selectedCols.append(df.columns[item.column()])
-                if item.row() not in selectedRows:
-                    selectedRows.append(item.row())
-            df = df[selectedCols]
-            df = pd.DataFrame(df, index=selectedRows)
-        else:
-            for col in df.columns:
-                if utils_recognize_type(df, col) != 'cat':
-                    selectedCols.append(col)
-            df = df[selectedCols]
-
+        df,selectedCols,selsctedRows=self.creatDfFromTable()
+        self.plotWindow.clearPlot()
         #df.boxplot(column=selectedCols)
-        self.plotWindow.runPlotFunction(df.boxplot,column=selectedCols,setYourLabel=df.columns[0])
+        self.plotWindow.runPlotFunction(PlotWindow.BOX_PLOT, df)
+
+
         self.plotWindow.show()
-        self.table.clearSelection()
+
 
     @QtCore.pyqtSlot()
     def on_histogramPlotPB_clicked(self):
-        #disc = {'x':['R1:R200'],'y':['C1:C200'],'groupby':''}
-        #dialog = Dialog(disc, self)
-        #dialog.show()
-        df = pd.read_csv(self.filename)
-        df = df.dropna()
-        selected = self.table.selectedItems()
-        selectedCols = []
-        selectedRows = []
-        if selected:
-            for item in selected:
-                print(item.column(),"X",item.row())
-                if df.columns[item.column()] not in selectedCols:
-                    selectedCols.append(df.columns[item.column()])
-                if item.row() not in selectedRows:
-                    selectedRows.append(item.row())
-            df = df[selectedCols]
-            df = pd.DataFrame(df, index=selectedRows)
-        else:
-            for col in df.columns:
-                if utils_recognize_type(df, col) != 'cat':
-                    selectedCols.append(col)
-                    break
-            df = df[selectedCols]
-        # df.plot(y='PRX1')
-
-        print(df)
-        #df[selectedCols[0]].plot(kind='hist',bins=100,rwidth=.9)
-        self.plotWindow.runPlotFunction(sns.distplot,df[selectedCols[0]], hist=True, kde=True, rug=False, bins=int(180/5),
-                     color='darkblue',hist_kws={'edgecolor':'black'},
-                     kde_kws={'linewidth': 3},
-                     rug_kws={'color': 'black'},setYourLabel=df.columns[0])
-        '''
-        sns.distplot(df[selectedCols[0]], hist=True, kde=True, rug=False, bins=int(180/5),
-             color='darkblue',hist_kws={'edgecolor':'black'},
-             kde_kws={'linewidth': 3},
-             rug_kws={'color': 'black'})
-        '''
+        df, selectedCols, selsctedRows = self.creatDfFromTable()
+        self.plotWindow.clearPlot()
+        self.plotWindow.runPlotFunction(PlotWindow.HISTOGRAM_PLOT, df)
 
         self.plotWindow.show()
-        self.table.clearSelection()
 
     @QtCore.pyqtSlot()
     def on_plotPB_clicked(self):
         print("Plot PB clicked")
-        self.filename = self.addressLE.text()
-        df = pd.read_csv(self.filename)
-        df = df.dropna()
-        '''
-        a = df.iloc[0:1, :].to_numpy()
-        dict = {}
-        for i in df.columns:
-            print(i)
-            dict[i] = a[0][int(i)]
-        df.rename(columns=dict, inplace=True)
-        df = df.drop(columns="Time", axis=1)
-        df = df.drop(labels=22, axis=0)
-        df = pd.to_numeric(df,errors='coerce')
-        '''
-        #print(df.head())
-        # fig, ax = plt.subplots(nrows=1, ncols=1, sharex=False, sharey=False)
-        #print(df.index)
-        #print(df.columns)
-        selected = self.table.selectedItems()
-        selectedCols = []
-        selectedRows = []
-        if selected:
-            for item in selected:
-                #print(item.column(),"X",item.row())
-                if df.columns[item.column()] not in selectedCols:
-                    selectedCols.append(df.columns[item.column()])
-                if item.row() not in selectedRows:
-                    selectedRows.append(item.row())
-            df = df[selectedCols]
-            df = pd.DataFrame(df, index=selectedRows)
-        else:
-            for col in df.columns:
-                if utils_recognize_type(df, col) != 'cat':
-                    selectedCols.append(col)
-            df = df[selectedCols]
-        # df.plot(y='PRX1')
+        df, selectedCols, selsctedRows = self.creatDfFromTable()
+        self.plotWindow.clearPlot()
+        self.plotWindow.runPlotFunction(PlotWindow.PLOT, df)
 
-        #print(df)
-        #df[selectedCols].plot()
-        self.plotWindow.runPlotFunction(plt.plot,df[selectedCols],setYourLabel=df.columns[0])
-
-        '''
-        name, ext = os.path.splitext(self.filename)
-        if not os.path.isdir(name):
-            os.mkdir(name)
-        plt.savefig(name + "\\fig1.png")
-        self.addPicture(name + "\\fig1.png")
-        self.table.clearSelection()
-        '''
         self.plotWindow.show()
 
 
