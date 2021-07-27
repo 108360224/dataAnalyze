@@ -76,17 +76,28 @@ class PlotWindow(widgetForm, baseClass):
 
         self.currentColor = list(np.random.choice(range(256), size=3))
         self.currentSetItem=[]
+        self.iserror=False;
     def runPlotFunction(self,funcname,df):
 
         if funcname == self.SCATTER:
 
             if len(df.columns) < 2:
+                msg = QMessageBox()
+                msg.setText("warning select 2 columns")
+                msg.setWindowTitle("hint")
+                msg.exec_()
                 print("warning select 2 columns")
+                self.iserror=True
                 return
             try:
                 val = int(df[df.columns[0]].values[0])
             except ValueError:
+                msg = QMessageBox()
+                msg.setText("select only number")
+                msg.setWindowTitle("hint")
+                msg.exec_()
                 print("select only number")
+                self.iserror = True
                 return
             colors = ['#FF0000', '#00FF00', '#0000FF', '#F00000', '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
                       '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
@@ -103,6 +114,16 @@ class PlotWindow(widgetForm, baseClass):
                     self.plotParameterDict[str(df.columns[i])]={'funcname':funcname,'df':pd.DataFrame(d)}
 
         if funcname == self.BOX_PLOT:
+            try:
+                val = int(df[df.columns[0]].values[0])
+            except ValueError:
+                msg = QMessageBox()
+                msg.setText("select only number")
+                msg.setWindowTitle("hint")
+                msg.exec_()
+                print("select only number")
+                self.iserror = True
+                return
             self.plotParameterDict['BOX'] = {'funcname': funcname, 'df': df}
 
 
@@ -110,7 +131,12 @@ class PlotWindow(widgetForm, baseClass):
 
         if funcname == self.BOX_GROUP_PLOT:
             if len(df.columns) < 2:
+                msg = QMessageBox()
+                msg.setText("warning select 2 columns")
+                msg.setWindowTitle("hint")
+                msg.exec_()
                 print("warning select 2 columns")
+                self.iserror = True
                 return
             self.plotParameterDict[str(df.columns[0])] = {'funcname': funcname, 'df': df}
 
@@ -119,7 +145,12 @@ class PlotWindow(widgetForm, baseClass):
 
         if funcname == self.GROUP_PLOT:
             if len(df.columns) < 3:
+                msg = QMessageBox()
+                msg.setText("warning select 3 columns")
+                msg.setWindowTitle("hint")
+                msg.exec_()
                 print("warning select 3 columns")
+                self.iserror = True
                 return
             df = df.sort_values(by=df.columns[0])
             dfgb = df.groupby(df.columns[0])
@@ -134,21 +165,35 @@ class PlotWindow(widgetForm, baseClass):
                 d = {df.columns[0]:key,df.columns[1]:X,df.columns[2]:Y}
                 self.plotParameterDict[key] = {'funcname': funcname, 'df': pd.DataFrame(d)}
         if funcname == self.HISTOGRAM_PLOT:
-            if len(df.columns) > 1:
-                print("select only one column")
-                return
+            
             try:
                 val = int(df[df.columns[0]].values[0])
             except ValueError:
+                msg = QMessageBox()
+                msg.setText("select only number")
+                msg.setWindowTitle("hint")
+                msg.exec_()
                 print("select only number")
+                self.iserror = True
                 return
-            self.plotParameterDict[str(df.columns[0])] = {'funcname': funcname, 'df': df}
-            self.addPlotFunction(sns.distplot,a=df[df.columns[0]], hist=True, kde=True, rug=False, bins=int(180/5),
-                     color='darkblue',hist_kws={'edgecolor':'black'},
-                     kde_kws={'linewidth': 3},
-                     rug_kws={'color': 'black'},label=df.columns[0])
+            for i in range(len(df.columns)):
+                self.plotParameterDict[str(df.columns[i])] = {'funcname': funcname, 'df': df}
+                self.addPlotFunction(sns.distplot,a=df[df.columns[i]], hist=True, kde=True, rug=False, bins=int(180/5),
+                         color='darkblue',hist_kws={'edgecolor':'black'},
+                         kde_kws={'linewidth': 3},
+                         rug_kws={'color': 'black'},label=df.columns[i])
         if funcname == self.PLOT:
-
+            try:
+                for i in range(len(df.columns)):
+                    val = int(df[df.columns[i]].values[0])
+            except ValueError:
+                msg = QMessageBox()
+                msg.setText("select only number")
+                msg.setWindowTitle("hint")
+                msg.exec_()
+                print("select only number")
+                self.iserror = True
+                return
             for col in df.columns:
                 d={col:df[col]}
                 self.plotParameterDict[col] = {'funcname': funcname, 'df':pd.DataFrame(d)}
@@ -300,9 +345,11 @@ class PlotWindow(widgetForm, baseClass):
 
 
     def show(self):
-        super().show()
-        self.eternalplotParameterDict = copy.deepcopy(self.plotParameterDict)
-        self.tableWidget.clear()
+        if not self.iserror:
+            super().show()
+            self.eternalplotParameterDict = copy.deepcopy(self.plotParameterDict)
+            self.tableWidget.clear()
+        self.iserror=False
 
 
 
